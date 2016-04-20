@@ -57,6 +57,8 @@ int RL2 = 11;
 int GL2 = 12;
 int BL2 = 13;
 
+char validChars[]={'N','L','R','B','O','H'};
+int size_validChars = (int)(sizeof(validChars) / sizeof(validChars[0]));
 //String leds;
 float angles[3]; // yaw pitch roll
 FreeSixIMU sixDOF = FreeSixIMU();
@@ -226,6 +228,89 @@ void clearColorEars(){
   ears.show();
 }
 
+void colorWipeLeft(uint32_t c, uint8_t wait) {
+  uint32_t off = pixels.Color(0,0,0);
+
+  uint8_t trailSize = 5;
+
+  for(uint16_t i=0; i<pixels.numPixels(); i++) {
+    pixels.setPixelColor(i, c);
+    if((i-trailSize)>=0) pixels.setPixelColor(i-trailSize,off);
+    pixels.show();
+    delay(wait);
+  }
+}
+void colorWipeRight(uint32_t c, uint8_t wait) {
+  uint32_t off = pixels.Color(0,0,0);
+  uint16_t max_pixels = pixels.numPixels();
+
+  uint8_t trailSize = 5;
+
+  for(uint16_t i=0; i<=max_pixels; i++) {
+    pixels.setPixelColor(max_pixels-i, c);
+    if(i>=trailSize)pixels.setPixelColor(max_pixels-i+trailSize,off);
+    pixels.show();
+    delay(wait);
+  }
+}
+
+void colorLookHere(uint32_t c, uint8_t wait){
+  uint32_t off = pixels.Color(0,0,0);
+  uint16_t max_pixels = pixels.numPixels();
+  uint16_t half_max_pixels = max_pixels/2;
+
+  uint8_t trailSize = 3;
+
+  for(uint16_t i=0;i<=half_max_pixels;i++){
+    pixels.setPixelColor(half_max_pixels-i,c);
+    pixels.setPixelColor(half_max_pixels+i,c);
+
+    if((i-trailSize)>=0) pixels.setPixelColor(half_max_pixels+i-trailSize,off) ;
+    if(i>=trailSize) pixels.setPixelColor(half_max_pixels-i+trailSize,off);
+    pixels.show();
+    delay(wait);
+  }
+}
+
+void fade(){
+  for(int j =0; j<200; j++){
+      pixels.setBrightness(200-j);
+      delay(20);
+  }
+}
+
+void colorBeat(uint32_t c, uint8_t wait){
+  for(int j=0;j<2;j++){
+    for(uint16_t i=0; i<pixels.numPixels();i++){
+      pixels.setPixelColor(i,c);
+    }
+    pixels.show();
+    fade();
+    delay(wait);
+    pixels.setBrightness(200);
+  }
+
+}
+
+
+void theaterChase(uint32_t c, uint8_t wait) {
+  for (int j=0; j<2; j++) {  //do 10 cycles of chasing
+    for (int q=0; q < 3; q++) {
+      for (uint16_t i=0; i < pixels.numPixels(); i=i+3) {
+        pixels.setPixelColor(i+q, c);    //turn every third pixel on
+      }
+      pixels.show();
+
+      delay(wait);
+
+      for (uint16_t i=0; i < pixels.numPixels(); i=i+3) {
+        pixels.setPixelColor(i+q, 0);        //turn every third pixel off
+      }
+    }
+  }
+}
+
+
  // TODO: Integrate Wheel to a game class, e.g: games.cpp/.h
 uint32_t Wheel(byte WheelPos) {
   WheelPos = 255 - WheelPos;
@@ -253,6 +338,18 @@ void rainbowSequence(uint8_t wait){
     }
 }
 
+void rainbowCycle(uint8_t wait) {
+  uint16_t i, j;
+
+  for(j=0; j<256*5; j++) { // 5 cycles of all colors on wheel
+    for(i=0; i< pixels.numPixels(); i++) {
+      pixels.setPixelColor(i, Wheel(((i * 256 / pixels.numPixels()) + j) & 255));
+    }
+    pixels.show();
+    delay(wait);
+  }
+}
+
 void verifyOrder(String order){
 
   //REVIEW: take away debug prints on usb serial
@@ -260,21 +357,43 @@ void verifyOrder(String order){
   Serial.println(order);
   switch (order.charAt(1)) {
     case 'N':
-    Serial.println("inCaseR");
+    Serial.println("inCaseN");
     rainbowSequence(20);
     break;
     case 'L':
+    Serial.println("inCaseL");
+    colorWipeLeft(pixels.Color(200,200,200), 50);
     break;
     case 'R':
+    Serial.println("inCaseR");
+    colorWipeRight(pixels.Color(200,200,200), 50);
     break;
     case 'B':
+    Serial.println("inCaseB");
+    colorBeat(pixels.Color(200,0,0),20);
     break;
     case 'O':
+    Serial.println("inCaseO");
+    theaterChase(pixels.Color(200,200,200),50);
     break;
     case 'H':
+    Serial.println("inCaseH");
+    colorLookHere(pixels.Color(200,200,200),50);
     break;
 
   }
+}
+
+bool ValidCharacter(char testChar){
+  int i=0;
+  for(i=0;i<size_validChars;i++){
+    if(validChars[i] == testChar){
+      Serial.print("CharTRUE:");
+      Serial.println(testChar);
+      return true;
+    }
+  }
+  return false;
 }
 
 char Serial_busy_wait() {
@@ -330,11 +449,14 @@ void loop()
                   order += (char)caracter;
                   Serial.print("_order:");
                   Serial.println(order);
-                }else if(caracter == 'R'){
+                } else if(ValidCharacter(caracter)){
                   order += (char)caracter;
-                  Serial.print("_order:");
-                  Serial.println(order);
                 }
+                // else if(caracter == 'R'){
+                //   order += (char)caracter;
+                //   Serial.print("_order:");
+                //   Serial.println(order);
+                // }
                 else if(caracter=='>'){
                   order += (char)caracter;
                   Serial.print("_order:");
