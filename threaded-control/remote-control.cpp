@@ -8,10 +8,21 @@
 
 #include <ctype.h>
 
+//Predefining game functions
+void rainbowCycle(uint8_t wait);
+void rainbowSequence(uint8_t wait);
+uint32_t Wheel(byte WheelPos);
+void theaterChase(uint32_t c, uint8_t wait);
+void colorLookHere(uint32_t c, uint8_t wait);
+void colorWipeRight(uint32_t c, uint8_t wait);
+void colorWipeLeft(uint32_t c, uint8_t wait);
+void clearColorBelt(void);
+void clearColorEars(void);
+
 void mainThread(void);
 //Definining Pin types for the device
-#define Serio_BT Serial
-#define Serio_USB Serial1
+#define Serio_BT Serial1
+#define Serio_USB Serial
 //LEDS
 #define PIN_LED_BELT   46
 #define PIN_LED_EARS   8
@@ -19,6 +30,8 @@ void mainThread(void);
 
 Adafruit_NeoPixel pixel_belt = Adafruit_NeoPixel(NUMPIXELS, PIN_LED_BELT);
 Adafruit_NeoPixel pixel_ears = Adafruit_NeoPixel(2,PIN_LED_EARS);
+
+
 
 // Motor Pins TODO:define/explain theses pins
 int E1 = 5;
@@ -104,17 +117,16 @@ static msg_t Thread1(void* arg) {
         chMtxLock(&serialMutex);
         tempString[0] = caracter;
         chMtxUnlock();
-        Serio_BT.print("inThd1-inputChar:");
-        Serio_BT.println(tempString);
-
+        //Serio_USB.print("inThd1-inputChar:");
+        //Serio_USB.println(tempString);
 
         if(isStarterChar(caracter)){
           //tempOrder += (char)caracter;
           //tempOrder += tempString;
           strcpy(tempOrder,tempString);
 
-          Serio_BT.print("inThd1-Order:");
-          Serio_BT.println(tempOrder);
+          //Serio_USB.print("inThd1-Order:");
+          //Serio_USB.println(tempOrder);
 
         } else if (isupper(caracter)){
           strcat(tempOrder,tempString);
@@ -122,21 +134,19 @@ static msg_t Thread1(void* arg) {
           //tempOrder += (char)caracter;
         } else if (isFinisherChar(caracter)){
 
-          //tempOrder += tempString;
           strcat(tempOrder,tempString);
-          //tempOrder += (char)caracter;
-          Serio_BT.print("inThd1-Finished-TempOrder:");
-          Serio_BT.println(tempOrder);
+          //Serio_USB.print("inThd1-Finished-TempOrder:");
+          //Serio_USB.println(tempOrder);
 
           //chMtxLock(&serialMutex);
-          //order = tempOrder;
           strcpy(order,tempOrder);
-          //chMtxUnlock();
-          Serio_BT.print("inThd1-Finished-Order:");
-          Serio_BT.println(order);
+          //Serio_USB.print("inThd1-Finished-Order:");
+          //Serio_USB.println(order);
 
+          if(!FLAG_GAMES){
+            FLAG_GAMES = true;
+          }
 
-          FLAG_GAMES = true;
 
         }
         else {
@@ -172,32 +182,45 @@ static msg_t Thread2(void* arg) {
 
     if(FLAG_GAMES){
       FLAG_GAMES = false;
-      Serio_BT.print("inThd2-Order:");
-      Serio_BT.println(order);
+      //Serio_BT.print("inThd2-Order:");
+      //Serio_BT.println(order);
       //if(strlen(order)>0) || order[1];
 
       if(strlen(order)>0){
         switch (order[1]) {
           case 'N':
-          Serio_BT.println("inThd2-case: N");
+          //Serio_USB.println("inThd2-case: N");
+          rainbowSequence(20);
           break;
           case 'L':
-          Serio_BT.println("inThd2-case: L");
+          colorWipeLeft(pixel_belt.Color(200,200,200), 50);
+          //Serio_USB.println("inThd2-case: L");
           break;
           case 'R':
-          Serio_BT.println("inThd2-case: R");
+          colorWipeRight(pixel_belt.Color(200,200,200), 50);
+          //Serio_USB.println("inThd2-case: R");
+          break;
+          case 'O':
+          //Serio_USB.println("inCaseO");
+          theaterChase(pixel_belt.Color(200,200,200),50);
+          break;
+          case 'H':
+          //Serio_USB.println("inCaseH");
+          colorLookHere(pixel_belt.Color(200,200,200),50);
           break;
         }
       }
 
       memset(order, 0, sizeof(order));
+
+      clearColorBelt();
       //order = "";
     }
 
     if(FLAG_LEDS){
 
     }
-    // Sleep for 50 milliseconds.
+    // Sleep for 20 milliseconds.
     chThdSleepMilliseconds(20);
   }
   return (msg_t)0;
@@ -207,30 +230,28 @@ static msg_t Thread2(void* arg) {
 // 64 byte stack beyond task switch and interrupt needs
 // static THD_WORKING_AREA(waThread1, 64);
 //
-// static THD_FUNCTION(Thread1 ,arg) {
-//   pinMode(LED_PIN, OUTPUT);
+// static msg_t Thread3(void* arg) {
 //
 //   // Flash led every 200 ms.
-//   while (1) {
-//     // Turn LED on.
-//     digitalWrite(LED_PIN, HIGH);
+//   while (!chThdShouldTerminate()) {
 //
-//     // Sleep for 50 milliseconds.
-//     chThdSleepMilliseconds(50);
+//     if(FLAG_MOTOR){
+//       FLAG_MOTOR = false;
 //
-//     // Turn LED off.
-//     digitalWrite(LED_PIN, LOW);
 //
+//
+//
+//     }
 //     // Sleep for 150 milliseconds.
-//     chThdSleepMilliseconds(150);
+//     chThdSleepMilliseconds(20);
 //   }
 // }
 //------------------------------------------------------------------------------
 // TODO:thread 4 - SensorData record/send Thread -
 // 64 byte stack beyond task switch and interrupt needs
-// static THD_WORKING_AREA(waThread1, 64);
+// static THD_WORKING_AREA(waThread4, 256);
 //
-// static THD_FUNCTION(Thread1 ,arg) {
+// static THD_FUNCTION(Thread4 ,arg) {
 //   pinMode(LED_PIN, OUTPUT);
 //
 //   // Flash led every 200 ms.
@@ -263,7 +284,7 @@ void setup(){
   analogWrite(E2, 0);
 
   //Initialising Communication
-  Serio_USB.begin(9600);
+  Serio_USB.begin(115200);
   Serio_BT.begin(115200);
   Wire.begin();
 
@@ -308,4 +329,121 @@ void mainThread() {
 //------------------------------------------------------------------------------
 void loop() {
  // not used
+}
+
+
+//------------------GAMES-------------------------------------------------------
+//TODO: change games into their own files
+void clearColorBelt(){
+  uint32_t off = pixel_belt.Color(0,0,0);
+  for(int i = 0; i < pixel_belt.numPixels();i++){
+    pixel_belt.setPixelColor(i,off);
+  }
+  pixel_belt.show();
+}
+void clearColorEars(){
+  pixel_ears.setPixelColor(1,0,0,0);
+  pixel_ears.setPixelColor(2,0,0,0);
+
+  pixel_ears.show();
+}
+
+void colorWipeLeft(uint32_t c, uint8_t wait) {
+  uint32_t off = pixel_belt.Color(0,0,0);
+
+  uint8_t trailSize = 5;
+
+  for(uint16_t i=0; i<pixel_belt.numPixels(); i++) {
+    pixel_belt.setPixelColor(i, c);
+    if((i-trailSize)>=0) pixel_belt.setPixelColor(i-trailSize,off);
+    pixel_belt.show();
+    delay(wait);
+  }
+}
+
+void colorWipeRight(uint32_t c, uint8_t wait) {
+  uint32_t off = pixel_belt.Color(0,0,0);
+  uint16_t max_pixels = pixel_belt.numPixels();
+
+  uint8_t trailSize = 5;
+
+  for(uint16_t i=0; i<=max_pixels; i++) {
+    pixel_belt.setPixelColor(max_pixels-i, c);
+    if(i>=trailSize)pixel_belt.setPixelColor(max_pixels-i+trailSize,off);
+    pixel_belt.show();
+    delay(wait);
+  }
+}
+
+void colorLookHere(uint32_t c, uint8_t wait){
+  uint32_t off = pixel_belt.Color(0,0,0);
+  uint16_t max_pixels = pixel_belt.numPixels();
+  uint16_t half_max_pixels = max_pixels/2;
+
+  uint8_t trailSize = 3;
+
+  for(uint16_t i=0;i<=half_max_pixels;i++){
+    pixel_belt.setPixelColor(half_max_pixels-i,c);
+    pixel_belt.setPixelColor(half_max_pixels+i,c);
+
+    if((i-trailSize)>=0) pixel_belt.setPixelColor(half_max_pixels+i-trailSize,off) ;
+    if(i>=trailSize) pixel_belt.setPixelColor(half_max_pixels-i+trailSize,off);
+    pixel_belt.show();
+    delay(wait);
+  }
+}
+
+void theaterChase(uint32_t c, uint8_t wait) {
+  for (int j=0; j<2; j++) {  //do 10 cycles of chasing
+    for (int q=0; q < 3; q++) {
+      for (uint16_t i=0; i < pixel_belt.numPixels(); i=i+3) {
+        pixel_belt.setPixelColor(i+q, c);    //turn every third pixel on
+      }
+      pixel_belt.show();
+
+      delay(wait);
+
+      for (uint16_t i=0; i < pixel_belt.numPixels(); i=i+3) {
+        pixel_belt.setPixelColor(i+q, 0);        //turn every third pixel off
+      }
+    }
+  }
+}
+
+uint32_t Wheel(byte WheelPos) {
+  WheelPos = 255 - WheelPos;
+  if(WheelPos < 85) {
+    return pixel_belt.Color(255 - WheelPos * 3, 0, WheelPos * 3);
+  }
+  if(WheelPos < 170) {
+    WheelPos -= 85;
+    return pixel_belt.Color(0, WheelPos * 3, 255 - WheelPos * 3);
+  }
+  WheelPos -= 170;
+  return pixel_belt.Color(WheelPos * 3, 255 - WheelPos * 3, 0);
+}
+
+void rainbowSequence(uint8_t wait){
+  uint16_t i, j;
+
+
+    for(j=0; j<256; j++) {
+      for(i=0; i<pixel_belt.numPixels(); i++) {
+        pixel_belt.setPixelColor(i, Wheel((i+j) & 255));
+      }
+      pixel_belt.show();
+      delay(wait);
+    }
+}
+
+void rainbowCycle(uint8_t wait) {
+  uint16_t i, j;
+
+  for(j=0; j<256*5; j++) { // 5 cycles of all colors on wheel
+    for(i=0; i< pixel_belt.numPixels(); i++) {
+      pixel_belt.setPixelColor(i, Wheel(((i * 256 / pixel_belt.numPixels()) + j) & 255));
+    }
+    pixel_belt.show();
+    delay(wait);
+  }
 }
