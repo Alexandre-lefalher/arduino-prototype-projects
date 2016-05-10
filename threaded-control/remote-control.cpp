@@ -34,6 +34,10 @@ Adafruit_NeoPixel pixel_ears = Adafruit_NeoPixel(2,PIN_LED_EARS);
 
 
 // Motor Pins TODO:define/explain theses pins
+//M1 corresponds to the Left Motor's direction
+//M2 corresponds to the right Motor's direction
+//Mn value is LOW for reverse & HIGH for forward.
+//Respectively the E values represent strength applied
 int E1 = 5;
 int M1 = 4;
 int E2 = 6;
@@ -48,10 +52,10 @@ volatile bool FLAG_LEDS = false;
 char validChars[]={'N','L','R','B','O','H'};
 int size_validChars = (int)(sizeof(validChars) / sizeof(validChars[0]));
 
-char listStarterChar[] = {'<'};
+char listStarterChar[] = {'<','['};
 int size_listStarterChar = (int)(sizeof(listStarterChar) / sizeof(listStarterChar[0]));
 
-char listFinisherChar[] = {'>'};
+char listFinisherChar[] = {'>',']'};
 int size_listFinisherChar = (int)(sizeof(listFinisherChar) / sizeof(listFinisherChar[0]));
 
 //REVIEW: string orders might need different encapsulation
@@ -117,37 +121,57 @@ static msg_t Thread1(void* arg) {
         chMtxLock(&serialMutex);
         tempString[0] = caracter;
         chMtxUnlock();
-        //Serio_USB.print("inThd1-inputChar:");
-        //Serio_USB.println(tempString);
 
-        if(isStarterChar(caracter)){
-          //tempOrder += (char)caracter;
-          //tempOrder += tempString;
+        // Serio_BT.print("inThd1-TempOrder:");
+        // Serio_BT.println(tempOrder);
+        // Serio_BT.print("inThd1-Command:");
+        // Serio_BT.println(command);
+        //Serio_BT.print("inThd1-Command:");
+        //Serio_BT.println(tempOrder);
+
+        if (isFinisherChar(caracter)){
+
+          if(caracter == ']'){
+            //do motor command actions
+            strcat(tempOrder,tempString);
+            strcpy(command,tempOrder);
+
+            //Serio_BT.print("inThd1-Command:");
+            //Serio_BT.println(command);
+
+            if(!FLAG_MOTOR){
+              FLAG_MOTOR = true;
+            }
+          } else if (caracter == '>'){
+            //do game order actions
+            strcat(tempOrder,tempString);
+            strcpy(order,tempOrder);
+
+            if(!FLAG_GAMES){
+              FLAG_GAMES = true;
+            }
+
+          }
+
+        } else if(isStarterChar(caracter)){
           strcpy(tempOrder,tempString);
-
-          //Serio_USB.print("inThd1-Order:");
-          //Serio_USB.println(tempOrder);
+          //Serio_BT.print("inThd1-Starter,temp:");
+          //Serio_BT.println(tempOrder);
+          // Serio_BT.print("inThd1-Starter:");
+          // Serio_BT.println(command);
 
         } else if (isupper(caracter)){
           strcat(tempOrder,tempString);
-          //tempOrder += tempString;
-          //tempOrder += (char)caracter;
-        } else if (isFinisherChar(caracter)){
+          //Serio_BT.print("inThd1-Upper,temp:");
+          //Serio_BT.println(tempOrder);
 
+        } else if (isdigit(caracter)){
           strcat(tempOrder,tempString);
-          //Serio_USB.print("inThd1-Finished-TempOrder:");
-          //Serio_USB.println(tempOrder);
+          //Serio_BT.print("inIsDigit:");
+          //Serio_BT.println(tempOrder);
 
-          //chMtxLock(&serialMutex);
-          strcpy(order,tempOrder);
-          //Serio_USB.print("inThd1-Finished-Order:");
-          //Serio_USB.println(order);
-
-          if(!FLAG_GAMES){
-            FLAG_GAMES = true;
-          }
-
-
+        } else if (caracter == ',' || caracter == '+' || caracter == '-'){
+          strcat(tempOrder,tempString);
         }
         else {
           memset(tempOrder,0,strlen(tempOrder));
@@ -164,7 +188,7 @@ static msg_t Thread1(void* arg) {
       // chMtxUnlock(&dataMutex);
 
       // Sleep for 50 milliseconds.
-      chThdSleepMilliseconds(20);
+      //chThdSleepMilliseconds(20);
 
   }
   return (msg_t)0;
@@ -228,24 +252,79 @@ static msg_t Thread2(void* arg) {
 //------------------------------------------------------------------------------
 // TODO: thread 3 - Mouvement Thread - Applies mouvement from order to the wheels
 // 64 byte stack beyond task switch and interrupt needs
-// static THD_WORKING_AREA(waThread1, 64);
-//
-// static msg_t Thread3(void* arg) {
-//
-//   // Flash led every 200 ms.
-//   while (!chThdShouldTerminate()) {
-//
-//     if(FLAG_MOTOR){
-//       FLAG_MOTOR = false;
-//
-//
-//
-//
-//     }
-//     // Sleep for 150 milliseconds.
-//     chThdSleepMilliseconds(20);
-//   }
-// }
+static WORKING_AREA(waThread3, 256);
+
+static msg_t Thread3(void* arg) {
+
+  int leftMotor=0;
+  int rightMotor=0;
+  // Flash led every 200 ms.
+  while (!chThdShouldTerminate()) {
+
+    if(FLAG_MOTOR){
+      FLAG_MOTOR = false;
+
+      //Serio_BT.println("In Thread3.");
+      leftMotor = strtol(strtok (command," ,[]"),NULL,10);
+      rightMotor = strtol(strtok (NULL," ,[]"),NULL,10);
+
+      //Serio_BT.println("Left and right Motor:");
+      //Serio_BT.println(leftMotor);
+      //Serio_BT.println(rightMotor);
+
+      //M1 corresponds to the Left Motor's direction
+      //M2 corresponds to the right Motor's direction
+      //Mn value is LOW for reverse & HIGH for forward.
+      //Respectively the E values represent strength applied
+
+      //REVIEW change 255 values for constant variable named max speed.
+      //Setting the Left motor values
+      if (leftMotor>=0 && leftMotor < 255){
+        digitalWrite(M1,HIGH);
+        analogWrite(E1, abs(leftMotor));
+
+      } else if (leftMotor > 255){
+        digitalWrite(M1,HIGH);
+        analogWrite(E1, 255);
+
+      } else if (leftMotor < 0 && leftMotor > -255) {
+
+        digitalWrite(M1,LOW);
+        analogWrite(E1, abs(leftMotor));
+
+      } else if (leftMotor < -255) {
+        digitalWrite(M1,LOW);
+        analogWrite(E1, 255);
+      }
+
+      //Right motor
+      if (rightMotor >= 0 && rightMotor < 255){
+
+        digitalWrite(M2,HIGH);
+        analogWrite(E2, abs(rightMotor));
+
+      } else if (rightMotor > 255){
+        digitalWrite(M2,HIGH);
+        analogWrite(E2, 255);
+      } else if (rightMotor < 0 && rightMotor > -255) {
+
+        digitalWrite(M2,LOW);
+        analogWrite(E2, abs(rightMotor));
+
+      } else if (leftMotor < -255) {
+        digitalWrite(M2,LOW);
+        analogWrite(E2, 255);
+      }
+
+
+
+      memset(command, 0, sizeof(command));
+
+    }
+    // Sleep for 150 milliseconds.
+    chThdSleepMilliseconds(5);
+  }
+}
 //------------------------------------------------------------------------------
 // TODO:thread 4 - SensorData record/send Thread -
 // 64 byte stack beyond task switch and interrupt needs
@@ -316,6 +395,9 @@ void mainThread() {
   // start print thread
   (void)chThdCreateStatic(waThread2, sizeof(waThread2),
                           NORMALPRIO, Thread2, NULL);
+
+  (void)chThdCreateStatic(waThread3, sizeof(waThread3),
+                          NORMALPRIO, Thread3, NULL);
 
   // increment counter
   while (1) {
