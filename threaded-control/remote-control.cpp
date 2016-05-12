@@ -8,6 +8,10 @@
 
 #include <ctype.h>
 
+#include <QueueArray.h>
+
+#include "LedPixel.h"
+
 //Predefining game functions
 void rainbowCycle(uint8_t wait);
 void rainbowSequence(uint8_t wait);
@@ -21,7 +25,7 @@ void clearColorEars(void);
 
 void mainThread(void);
 //Definining Pin types for the device
-#define Serio_BT Serial1
+#define Serio_BT Serial
 #define Serio_USB Serial
 //LEDS
 #define PIN_LED_BELT   46
@@ -48,6 +52,8 @@ volatile bool FLAG_GAMES = false;
 volatile bool FLAG_MOTOR = false;
 volatile bool FLAG_LEDS = false;
 
+
+
 //REVIEW:verify utility of theses verifications characters
 char validChars[]={'N','L','R','B','O','H'};
 int size_validChars = (int)(sizeof(validChars) / sizeof(validChars[0]));
@@ -62,6 +68,8 @@ int size_listFinisherChar = (int)(sizeof(listFinisherChar) / sizeof(listFinisher
 
 char command[256] = {0};
 char order[256] = {0};
+
+QueueArray <LedPixel> led_command_queue;
 // String command = "";
 // String order = "";
 
@@ -109,6 +117,12 @@ static msg_t Thread1(void* arg) {
     char tempString[5] = {0};
     char tempOrder[50] = "";
 
+    int led_ID;
+    int led_R;
+    int led_G;
+    int led_B;
+
+    LedPixel tempLed;
 
     //delay(50);
 
@@ -122,8 +136,8 @@ static msg_t Thread1(void* arg) {
         tempString[0] = caracter;
         chMtxUnlock();
 
-        // Serio_BT.print("inThd1-TempOrder:");
-        // Serio_BT.println(tempOrder);
+        Serio_BT.print("inThd1-TempOrder:");
+        Serio_BT.println(tempOrder);
         // Serio_BT.print("inThd1-Command:");
         // Serio_BT.println(command);
         //Serio_BT.print("inThd1-Command:");
@@ -145,12 +159,42 @@ static msg_t Thread1(void* arg) {
           } else if (caracter == '>'){
             //do game order actions
             strcat(tempOrder,tempString);
-            strcpy(order,tempOrder);
+            // Serio_BT.print("tempOrder size:");
+            // Serio_BT.println(strlen(tempOrder));
+            // Serio_BT.print("tempOrder[1]:");
+            // Serio_BT.println(tempOrder[1]);
 
-            if(!FLAG_GAMES){
-              FLAG_GAMES = true;
+
+
+
+            if(strlen(tempOrder) == 18 && tempOrder[1] == 'L'){
+                Serio_BT.print("In Led Decoding:");
+                //Insert values to LED Fifo
+                led_ID = strtol(strtok (&tempOrder[2]," ,>"),NULL,10);
+                led_R = strtol(strtok (NULL," ,>"),NULL,10);
+                led_G = strtol(strtok (NULL," ,>"),NULL,10);
+                led_B = strtol(strtok (NULL," ,>"),NULL,10);
+
+                Serio_BT.println(led_ID);
+                Serio_BT.println(led_R);
+
+
+                tempLed.set_id(led_ID);
+                tempLed.set_color(pixel_belt.Color(led_R,led_G,led_B));
+
+
+                //Queue values into LED Queue.
+                led_command_queue.push(tempLed);
+
+
+                if(!FLAG_LEDS) FLAG_LEDS = true;
+
+            } else {
+
+              strcpy(order,tempOrder);
+              if(!FLAG_GAMES) FLAG_GAMES = true;
             }
-
+          //End of distinction between Games & LEDS.
           }
 
         } else if(isStarterChar(caracter)){
@@ -202,6 +246,8 @@ static WORKING_AREA(waThread2, 256);
 static msg_t Thread2(void* arg) {
 
   // print count every second
+  LedPixel tempLed;
+
   while (!chThdShouldTerminate()) {
 
     if(FLAG_GAMES){
@@ -242,7 +288,20 @@ static msg_t Thread2(void* arg) {
     }
 
     if(FLAG_LEDS){
+      tempLed = led_command_queue.pop();
 
+      Serio_BT.println("AfterPop");
+      Serio_BT.println(tempLed.get_id());
+      Serio_BT.println(tempLed.get_color());
+
+
+
+      pixel_belt.setPixelColor(tempLed.get_id(),tempLed.get_color());
+      pixel_belt.show();
+
+      if(led_command_queue.isEmpty()){
+        FLAG_LEDS = false;
+      }
     }
     // Sleep for 20 milliseconds.
     chThdSleepMilliseconds(20);
@@ -264,7 +323,6 @@ static msg_t Thread3(void* arg) {
     if(FLAG_MOTOR){
       FLAG_MOTOR = false;
 
-      //Serio_BT.println("In Thread3.");
       leftMotor = strtol(strtok (command," ,[]"),NULL,10);
       rightMotor = strtol(strtok (NULL," ,[]"),NULL,10);
 
@@ -367,8 +425,11 @@ void setup(){
   Serio_BT.begin(115200);
   Wire.begin();
 
+
+  //Initialising led belt.
   pixel_belt.begin();
   pixel_ears.begin();
+  led_command_queue.setPrinter(Serio_BT);
 
   // wait for USB Serial
   while (!Serio_USB) {}
