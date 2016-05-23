@@ -31,11 +31,11 @@ int lastB = 0;
 /********* NOT DEFINITIVE ***********/
 
 void read(){
-	
+
 	while(Serio.available()){
 
 		char inChar = (char) Serio.read();
-			
+
 		inputString += inChar;
 
 		if(inChar == '\n' && inputString[0] == '\t'){
@@ -50,25 +50,26 @@ void read(){
 			String secondValue = inputString.substring(SpaceIndex+1, secondSpaceIndex);
 			String thirdValue = inputString.substring(secondSpaceIndex,thirdSpaceIndex);
 			String quadValue = inputString.substring(thirdSpaceIndex,endIndex);
+
 			int r = firstValue.toInt();
 			int g = secondValue.toInt();
 			int b = thirdValue.toInt();
 			int alpha = quadValue.toInt();
-			
+
 			if(r>=0 && r<=255 && g>=0 && g<=255 && b>=0 && b<=255){
 				// String complete
 				for(int i =0;i<NB_LEDS;i++){
 					strip.setPixelColor(i, r, g, b);
-				
+
 				}
 				lastR = r;
 				lastG = g;
 				lastB = b;
-				
+
 			}else{
 				for(int i =0;i<NB_LEDS;i++){
 					strip.setPixelColor(i, lastR, lastG, lastB);
-				
+
 				}
 			}
 			inputString="";

@@ -165,8 +165,6 @@ static msg_t Thread1(void* arg) {
             // Serio_BT.println(tempOrder[1]);
 
 
-
-
             if(strlen(tempOrder) == 18 && tempOrder[1] == 'L'){
                 Serio_BT.print("In Led Decoding:");
                 //Insert values to LED Fifo
