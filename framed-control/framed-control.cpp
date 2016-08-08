@@ -37,7 +37,7 @@ void setup(){
   analogWrite(RIGHT_MOTOR_POWER, 0);
 
   //Initialising Communication
-  Serio_USB.begin(115200);
+  //Serio_USB.begin(115200);
   Serio_BT.begin(115200);
   Wire.begin();
 

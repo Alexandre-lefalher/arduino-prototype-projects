@@ -25,7 +25,7 @@ void clearColorEars(void);
 
 void mainThread(void);
 //Definining Pin types for the device
-#define Serio_BT Serial
+#define Serio_BT Serial1
 #define Serio_USB Serial
 //LEDS
 #define PIN_LED_BELT   46
@@ -40,7 +40,7 @@ Adafruit_NeoPixel pixel_ears = Adafruit_NeoPixel(2,PIN_LED_EARS);
 // Motor Pins TODO:define/explain theses pins
 //M1 corresponds to the Left Motor's direction
 //M2 corresponds to the right Motor's direction
-//Mn value is LOW for reverse & HIGH for forward.
+//Mn value is LL_LOW for reverse & LL_HIGH for forward.
 //Respectively the E values represent strength applied
 int E1 = 5;
 int M1 = 4;
@@ -410,7 +410,7 @@ static msg_t Thread3(void* arg) {
 
 void setup(){
 
-  //Initiliating Pin Modes
+
   pinMode(M1, OUTPUT);
   pinMode(M2, OUTPUT);
   digitalWrite(M1,HIGH);

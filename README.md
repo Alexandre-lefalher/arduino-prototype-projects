@@ -36,4 +36,4 @@ Testing the parsing possibilities under ChibiOS and it's threads.
 
 ## Framed-Control
 
-Parser following a set of defined and shared frames. Most up to date frame over the air parser. 
+Parser following a set of defined and shared frames. Most up to date frame over the air parser.

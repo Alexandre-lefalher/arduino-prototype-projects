@@ -36,7 +36,7 @@ void loop(){
     //character = Serial.read();
     tempChar[0] = character;
     //Serio_USB.print(character,HEX);
-    if(character == 'e'){
+    if(character == '\n'){
       strcat(command,tempChar);
       //FLAG_MESSAGE = true;
       Serial.println(command);

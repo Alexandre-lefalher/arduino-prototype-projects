@@ -7,7 +7,7 @@
 #include "messages.h"
 
 //Definining Pin types for the device
-#define Serio_BT Serial1
+#define Serio_BT Serial
 #define Serio_USB Serial
 //LEDS
 #define PIN_LED_BELT   46
