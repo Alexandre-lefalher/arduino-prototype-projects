@@ -80,7 +80,6 @@ void loop(){
       strcat(command,tempChar);
       FLAG_MESSAGE = true;
 
-
     } else if(strlen(command)<100){
       strcat(command,tempChar);
     } else {
@@ -103,13 +102,11 @@ void loop(){
         case LED_BELT:
           if(strlen(command) == MSG_LED_SIZE){
             //use std string substring
-            // Serio_USB.println(command);
-
+             Serio_BT.println(command);
             // Serio_USB.println(str_command.substring(1,3));
             // Serio_USB.println(str_command.substring(3,6));
             // Serio_USB.println(str_command.substring(6,9));
             // Serio_USB.println(str_command.substring(9,12));
-
             //Apply Lighting values
             //ID,Red, Green, Blue
             //cf, frame document
@@ -141,7 +138,8 @@ void loop(){
         if(strlen(command) == MSG_MOTOR_SIZE){
           motor_message.setMsgValues(str_command.substring(1,5).toInt());
           applyLeftMotorValue();
-          // Serio_USB.println("MOTOR_LEFT");
+          Serio_USB.println(strlen(command));
+           Serio_USB.println("MOTOR_LEFT");
           // Serio_USB.println(str_command.substring(1,5).toInt());
         }
         break;
@@ -150,7 +148,8 @@ void loop(){
         if(strlen(command) == MSG_MOTOR_SIZE){
           motor_message.setMsgValues(str_command.substring(1,5).toInt());
           applyRightMotorValue();
-          // Serio_USB.println("MOTOR_RIGHT");
+          Serio_USB.println(strlen(command));
+           Serio_USB.println("MOTOR_RIGHT");
           // Serio_USB.println(str_command.substring(1,5).toInt());
         }
         break;
