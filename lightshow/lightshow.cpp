@@ -63,6 +63,7 @@ void loop (){
 
   color = pixel_belt.Color(red,blue,green);
 
+
   showSpeed = random(20, 100);
 
   gameId = random(0, 6);
