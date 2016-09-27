@@ -30,6 +30,7 @@
 typedef enum {
   LED_EARS = 0x30,
   LED_BELT = 0x31,
+  LED_WHOLE = 0x32,
   MOTOR_LEFT = 0x40,
   MOTOR_RIGHT = 0x41
 }command_id;
@@ -37,6 +38,8 @@ typedef enum {
 void displayBelt(void);
 void displayEars(void);
 void clearColorBelt(void);
+
+void displayWhole(void);
 
 void applyRightMotorValue(void);
 void applyLeftMotorValue(void);

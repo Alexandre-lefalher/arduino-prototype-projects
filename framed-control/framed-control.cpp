@@ -134,6 +134,21 @@ void loop(){
         }
         break;
 
+        case LED_WHOLE:
+        if(strlen(command) == MSG_LED_SIZE){
+
+          led_message.set_msg_values(str_command.substring(1,3).toInt(),
+                                      str_command.substring(3,6).toInt(),
+                                      str_command.substring(6,9).toInt(),
+                                      str_command.substring(9,12).toInt());
+          displayWhole();
+          Serio_USB.println("Whole Belt");
+
+
+        }
+
+
+
         case MOTOR_LEFT:
         if(strlen(command) == MSG_MOTOR_SIZE){
           motor_message.setMsgValues(str_command.substring(1,5).toInt());
@@ -185,6 +200,19 @@ void displayEars(){
     //clear message for next instruction
     led_message.clearMsgValues();
     }
+}
+
+void displayWhole(){
+
+  if(led_message.isMessage()){
+    for(int i = 0; i < pixel_belt.numPixels(); i++){
+      pixel_belt.setPixelColor(led_message.getId(),led_message.getColor());
+    }
+    pixel_belt.show();
+    //clear message for the next instruction
+    led_message.clearMsgValues();
+  }
+
 }
 
 void clearColorBelt(){
